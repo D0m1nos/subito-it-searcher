@@ -245,6 +245,7 @@ def run_query(url, name, notify, minPrice, maxPrice):
 
     product_list_items = soup.find_all("div", class_=re.compile(r"item-card"))
     msg = []
+    msg_obj = []
 
     for product in product_list_items:
         title = product.find("h2").string
@@ -270,6 +271,9 @@ def run_query(url, name, notify, minPrice, maxPrice):
                 + " Unknown location for item %s" % (title)
             )
             location = "Unknown location"
+
+        thumbnail = product.find("figure").img.get("src")
+
         if minPrice == "null" or price == "Unknown price" or price >= int(minPrice):
             if maxPrice == "null" or price == "Unknown price" or price <= int(maxPrice):
                 if not queries.get(name):  # insert the new search
@@ -323,6 +327,15 @@ def run_query(url, name, notify, minPrice, maxPrice):
                             + link
                             + "\n"
                         )
+                        msg_obj.append(
+                            {
+                                "title": title,
+                                "price": price,
+                                "location": location,
+                                "link": link,
+                                "thumbnail": thumbnail,
+                            }
+                        )
                         msg.append(tmp)
                         queries[name][url][minPrice][maxPrice][link] = {
                             "title": title,
@@ -339,7 +352,7 @@ def run_query(url, name, notify, minPrice, maxPrice):
             if is_telegram_active():
                 send_telegram_messages(msg)
             if is_discord_active():
-                send_discord_messages(msg)
+                send_discord_messages(msg_obj)
             print("\n".join(msg))
             print("\n{} new elements have been found.".format(len(msg)))
         save_queries()
@@ -421,7 +434,23 @@ def send_discord_messages(messages):
         )
 
         json_data = {
-            "content": msg,
+            "embeds": [
+                {
+                    "type": "rich",
+                    "title": msg["title"],
+                    "url": msg["link"],
+                    "thumbnail": {
+                        "url": msg["thumbnail"],
+                    },
+                    "timestamp": datetime.now().isoformat(),
+                    "fields": [
+                        {
+                            "name": f"{msg['location']}\n{msg['price']}€",
+                            "value": f"[Link]({msg['link']})",
+                        }
+                    ],
+                },
+            ],
         }
 
         requests.post(request_url, json=json_data)
