@@ -239,6 +239,8 @@ def run_query(url, name, notify, minPrice, maxPrice):
         + ' running query ("{}" - {})...'.format(name, url)
     )
 
+    products_deleted = False
+
     global queries
     page = requests.get(url)
     soup = BeautifulSoup(page.text, "html.parser")
@@ -260,6 +262,17 @@ def run_query(url, name, notify, minPrice, maxPrice):
         except:
             price = "Unknown price"
         link = product.find("a").get("href")
+
+        sold = product.find("span", re.compile(r"item-sold-badge"))
+
+        # check if the product has already been sold
+        if sold != None:
+            # if the product has previously been saved remove it from the file
+            if queries.get(name).get(url).get(minPrice).get(maxPrice).get(link):
+                del queries[name][url][minPrice][maxPrice][link]
+                products_deleted = True
+            continue
+
         try:
             location = (
                 product.find("span", re.compile(r"town")).string
@@ -358,6 +371,11 @@ def run_query(url, name, notify, minPrice, maxPrice):
         save_queries()
     else:
         print("\nAll lists are already up to date.")
+
+        # if at least one search was deleted updated the search file
+        if products_deleted:
+            save_queries()
+
     # print("queries file saved: ", queries)
 
 
