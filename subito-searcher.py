@@ -338,6 +338,8 @@ def run_query(url, name, notify, minPrice, maxPrice):
                 toaster.show_toast("New announcements", "Query: " + name)
             if is_telegram_active():
                 send_telegram_messages(msg)
+            if is_discord_active():
+                send_discord_messages(msg)
             print("\n".join(msg))
             print("\n{} new elements have been found.".format(len(msg)))
         save_queries()
@@ -369,6 +371,22 @@ def is_telegram_active():
     return not args.tgoff and "chatid" in apiCredentials and "token" in apiCredentials
 
 
+def is_discord_active():
+    """A function to check if Discord is active, i.e. if the webhook id (DS_WEBHOOK_ID) and
+    webhook token (DS_WEBHOOK_TOKEN) are present as environment variables
+
+    Returns
+    -------
+    bool
+        True if Discord is active, False otherwise
+    """
+    return (
+        not args.dsoff
+        and os.environ.get("DS_WEBHOOK_ID") is not None
+        and os.environ.get("DS_WEBHOOK_TOKEN") is not None
+    )
+
+
 def send_telegram_messages(messages):
     """A function to send messages to telegram
 
@@ -391,6 +409,22 @@ def send_telegram_messages(messages):
             + msg
         )
         requests.get(request_url)
+
+
+def send_discord_messages(messages):
+    for msg in messages:
+        request_url = (
+            "https://discord.com/api/webhooks/"
+            + str(os.environ.get("DS_WEBHOOK_ID"))
+            + "/"
+            + str(os.environ.get("DS_WEBHOOK_TOKEN"))
+        )
+
+        json_data = {
+            "content": msg,
+        }
+
+        requests.post(request_url, json=json_data)
 
 
 def in_between(now, start, end):
