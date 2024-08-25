@@ -287,6 +287,8 @@ def run_query(url, name, notify, minPrice, maxPrice):
 
         thumbnail = product.find("figure").img.get("src")
 
+        shipping = product.find("span", re.compile(r"shipping-badge"))
+
         if minPrice == "null" or price == "Unknown price" or price >= int(minPrice):
             if maxPrice == "null" or price == "Unknown price" or price <= int(maxPrice):
                 if not queries.get(name):  # insert the new search
@@ -347,6 +349,7 @@ def run_query(url, name, notify, minPrice, maxPrice):
                                 "location": location,
                                 "link": link,
                                 "thumbnail": thumbnail,
+                                "shipping": "SI" if shipping is not None else "NO",
                             }
                         )
                         msg.append(tmp)
@@ -463,7 +466,7 @@ def send_discord_messages(messages):
                     "timestamp": datetime.now().isoformat(),
                     "fields": [
                         {
-                            "name": f"{msg['location']}\n{msg['price']}€",
+                            "name": f"{msg['location']}\n{msg['price']}€\nSpedizione: {msg['shipping']}",
                             "value": f"[Link]({msg['link']})",
                         }
                     ],
